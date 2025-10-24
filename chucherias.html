@@ -99,6 +99,23 @@
                 </div>
             </section>
 
+            <!-- Sección de Carrito de Compras -->
+            <section class="shopping-cart">
+                <h2>🛒 Carrito de Compras</h2>
+                <div class="cart-content">
+                    <div class="cart-items" id="cartItems">
+                        <p class="empty-cart">No hay productos en el carrito</p>
+                    </div>
+                    <div class="cart-total">
+                        <div class="total-info">
+                            <span class="total-label">Total:</span>
+                            <span class="total-amount" id="cartTotal">$0.00</span>
+                        </div>
+                        <button id="clearCartBtn" class="clear-cart-btn">Limpiar Carrito</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Sección para cambiar precios -->
             <section class="price-management">
                 <h2>💰 Gestión de Precios</h2>
@@ -140,6 +157,7 @@
 
         let currentUser = null;
         let nextProductId = 6;
+        let cart = [];
 
         // Elementos del DOM
         const loginScreen = document.getElementById('loginScreen');
@@ -152,6 +170,9 @@
         const updatePriceBtn = document.getElementById('updatePriceBtn');
         const filterCategory = document.getElementById('filterCategory');
         const clearFilters = document.getElementById('clearFilters');
+        const cartItems = document.getElementById('cartItems');
+        const cartTotal = document.getElementById('cartTotal');
+        const clearCartBtn = document.getElementById('clearCartBtn');
 
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
@@ -160,6 +181,7 @@
         updatePriceBtn.addEventListener('click', handleUpdatePrice);
         filterCategory.addEventListener('change', filterProducts);
         clearFilters.addEventListener('click', clearAllFilters);
+        clearCartBtn.addEventListener('click', clearCart);
 
         // Función de login
         function handleLogin(e) {
@@ -227,6 +249,7 @@
                         <p><strong>Stock:</strong> ${product.stock}</p>
                     </div>
                     <div class="product-actions">
+                        <button onclick="addToCart(${product.id})" class="add-to-cart-btn">🛒 Agregar</button>
                         <button onclick="deleteProduct(${product.id})" class="delete-btn">🗑️ Eliminar</button>
                     </div>
                 `;
@@ -287,6 +310,7 @@
                         <p><strong>Stock:</strong> ${product.stock}</p>
                     </div>
                     <div class="product-actions">
+                        <button onclick="addToCart(${product.id})" class="add-to-cart-btn">🛒 Agregar</button>
                         <button onclick="deleteProduct(${product.id})" class="delete-btn">🗑️ Eliminar</button>
                     </div>
                 `;
@@ -321,10 +345,89 @@
             return categoryNames[category] || category;
         }
 
+        // Funciones del carrito de compras
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1
+                });
+            }
+            updateCartDisplay();
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            updateCartDisplay();
+        }
+
+        function updateQuantity(productId, newQuantity) {
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                if (newQuantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    item.quantity = newQuantity;
+                    updateCartDisplay();
+                }
+            }
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartDisplay();
+        }
+
+        function updateCartDisplay() {
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p class="empty-cart">No hay productos en el carrito</p>';
+                cartTotal.textContent = '$0.00';
+                return;
+            }
+
+            cartItems.innerHTML = '';
+            let total = 0;
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+
+                const cartItemDiv = document.createElement('div');
+                cartItemDiv.className = 'cart-item';
+                cartItemDiv.innerHTML = `
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        <p>Precio: $${item.price.toFixed(2)}</p>
+                    </div>
+                    <div class="cart-item-controls">
+                        <div class="quantity-controls">
+                            <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" class="quantity-btn">-</button>
+                            <span class="quantity">${item.quantity}</span>
+                            <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" class="quantity-btn">+</button>
+                        </div>
+                        <div class="item-total">$${itemTotal.toFixed(2)}</div>
+                        <button onclick="removeFromCart(${item.id})" class="remove-item-btn">🗑️</button>
+                    </div>
+                `;
+                cartItems.appendChild(cartItemDiv);
+            });
+
+            cartTotal.textContent = `$${total.toFixed(2)}`;
+        }
+
         // Cargar productos iniciales
         document.addEventListener('DOMContentLoaded', function() {
             loadProducts();
             loadProductSelect();
+            updateCartDisplay();
         });
     </script>
 </body>
