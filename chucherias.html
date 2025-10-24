@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="image (1).png">
+    <title>Chucherias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <h1>📚 Sistema de Papelería</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Usuario:</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit">Iniciar Sesión</button>
+            </form>
+            <div id="loginError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Pantalla Principal -->
+    <div id="mainScreen" class="screen">
+        <header>
+            <h1>📚 Gestión de Papelería</h1>
+            <div class="user-info">
+                <span id="welcomeUser"></span>
+                <button id="logoutBtn">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Sección para agregar productos -->
+            <section class="add-product">
+                <h2>➕ Agregar Producto</h2>
+                <form id="addProductForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productName">Nombre del Producto:</label>
+                            <input type="text" id="productName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productPrice">Precio:</label>
+                            <input type="number" id="productPrice" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productCategory">Categoría:</label>
+                            <select id="productCategory" required>
+                                <option value="">Seleccionar categoría</option>
+                                <option value="escolar">Material Escolar</option>
+                                <option value="oficina">Oficina</option>
+                                <option value="arte">Arte y Manualidades</option>
+                                <option value="tecnologia">Tecnología</option>
+                                <option value="papeleria">Papelería General</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="productStock">Stock:</label>
+                            <input type="number" id="productStock" min="0" required>
+                        </div>
+                    </div>
+                    <button type="submit">Agregar Producto</button>
+                </form>
+            </section>
+
+            <!-- Sección para gestionar productos -->
+            <section class="manage-products">
+                <h2>📋 Gestión de Productos</h2>
+                
+                <!-- Filtros -->
+                <div class="filters">
+                    <div class="form-group">
+                        <label for="filterCategory">Filtrar por categoría:</label>
+                        <select id="filterCategory">
+                            <option value="">Todas las categorías</option>
+                            <option value="escolar">Material Escolar</option>
+                            <option value="oficina">Oficina</option>
+                            <option value="arte">Arte y Manualidades</option>
+                            <option value="tecnologia">Tecnología</option>
+                            <option value="papeleria">Papelería General</option>
+                        </select>
+                    </div>
+                    <button id="clearFilters">Limpiar Filtros</button>
+                </div>
+
+                <!-- Lista de productos -->
+                <div class="products-list">
+                    <div id="productsContainer"></div>
+                </div>
+            </section>
+
+            <!-- Sección para cambiar precios -->
+            <section class="price-management">
+                <h2>💰 Gestión de Precios</h2>
+                <div class="price-controls">
+                    <div class="form-group">
+                        <label for="selectProduct">Seleccionar Producto:</label>
+                        <select id="selectProduct">
+                            <option value="">Seleccionar producto</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPrice">Nuevo Precio:</label>
+                        <input type="number" id="newPrice" step="0.01" min="0">
+                    </div>
+                    <button id="updatePriceBtn">Actualizar Precio</button>
+                </div>
+                <div id="priceUpdateMessage" class="message"></div>
+            </section>
+        </main>
+        <footer class="footer"><h3>todo los derechos reservados a @ Jhonatan Acevedo y Fabian Acevedo</h3></footer>
+    </div>
+
+    <script>
+        // Datos de usuarios (en una aplicación real esto estaría en un servidor)
+        const users = {
+            'admin': 'admin123',
+            'papeleria': 'papeleria2024',
+            'usuario': '123456'
+        };
+
+        // Array para almacenar productos
+        let products = [
+            { id: 1, name: 'Lápices HB', price: 2.50, category: 'escolar', stock: 50 },
+            { id: 2, name: 'Cuadernos', price: 8.00, category: 'escolar', stock: 30 },
+            { id: 3, name: 'Bolígrafos', price: 1.50, category: 'oficina', stock: 100 },
+            { id: 4, name: 'Goma de borrar', price: 1.00, category: 'escolar', stock: 75 },
+            { id: 5, name: 'Regla 30cm', price: 3.00, category: 'escolar', stock: 40 }
+        ];
+
+        let currentUser = null;
+        let nextProductId = 6;
+
+        // Elementos del DOM
+        const loginScreen = document.getElementById('loginScreen');
+        const mainScreen = document.getElementById('mainScreen');
+        const loginForm = document.getElementById('loginForm');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const addProductForm = document.getElementById('addProductForm');
+        const productsContainer = document.getElementById('productsContainer');
+        const selectProduct = document.getElementById('selectProduct');
+        const updatePriceBtn = document.getElementById('updatePriceBtn');
+        const filterCategory = document.getElementById('filterCategory');
+        const clearFilters = document.getElementById('clearFilters');
+
+        // Event Listeners
+        loginForm.addEventListener('submit', handleLogin);
+        logoutBtn.addEventListener('click', handleLogout);
+        addProductForm.addEventListener('submit', handleAddProduct);
+        updatePriceBtn.addEventListener('click', handleUpdatePrice);
+        filterCategory.addEventListener('change', filterProducts);
+        clearFilters.addEventListener('click', clearAllFilters);
+
+        // Función de login
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (users[username] && users[username] === password) {
+                currentUser = username;
+                document.getElementById('welcomeUser').textContent = `Bienvenido, ${username}`;
+                loginScreen.classList.remove('active');
+                mainScreen.classList.add('active');
+                loadProducts();
+                loadProductSelect();
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = 'Usuario o contraseña incorrectos';
+            }
+        }
+
+        // Función de logout
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            mainScreen.classList.remove('active');
+            loginScreen.classList.add('active');
+        }
+
+        // Función para agregar producto
+        function handleAddProduct(e) {
+            e.preventDefault();
+            const name = document.getElementById('productName').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const category = document.getElementById('productCategory').value;
+            const stock = parseInt(document.getElementById('productStock').value);
+
+            const newProduct = {
+                id: nextProductId++,
+                name: name,
+                price: price,
+                category: category,
+                stock: stock
+            };
+
+            products.push(newProduct);
+            addProductForm.reset();
+            loadProducts();
+            loadProductSelect();
+        }
+
+        // Función para cargar productos en la lista
+        function loadProducts() {
+            productsContainer.innerHTML = '';
+            
+            products.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product-card';
+                productDiv.innerHTML = `
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p><strong>Categoría:</strong> ${getCategoryName(product.category)}</p>
+                        <p><strong>Precio:</strong> $${product.price.toFixed(2)}</p>
+                        <p><strong>Stock:</strong> ${product.stock}</p>
+                    </div>
+                    <div class="product-actions">
+                        <button onclick="deleteProduct(${product.id})" class="delete-btn">🗑️ Eliminar</button>
+                    </div>
+                `;
+                productsContainer.appendChild(productDiv);
+            });
+        }
+
+        // Función para cargar productos en el select de cambio de precios
+        function loadProductSelect() {
+            selectProduct.innerHTML = '<option value="">Seleccionar producto</option>';
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.name} - $${product.price.toFixed(2)}`;
+                selectProduct.appendChild(option);
+            });
+        }
+
+        // Función para actualizar precio
+        function handleUpdatePrice() {
+            const productId = parseInt(selectProduct.value);
+            const newPrice = parseFloat(document.getElementById('newPrice').value);
+            const messageDiv = document.getElementById('priceUpdateMessage');
+
+            if (!productId || !newPrice) {
+                messageDiv.textContent = 'Por favor selecciona un producto e ingresa el nuevo precio';
+                messageDiv.className = 'message error';
+                return;
+            }
+
+            const productIndex = products.findIndex(p => p.id === productId);
+            if (productIndex !== -1) {
+                products[productIndex].price = newPrice;
+                loadProducts();
+                loadProductSelect();
+                document.getElementById('newPrice').value = '';
+                messageDiv.textContent = 'Precio actualizado correctamente';
+                messageDiv.className = 'message success';
+            }
+        }
+
+        // Función para filtrar productos
+        function filterProducts() {
+            const selectedCategory = filterCategory.value;
+            const filteredProducts = selectedCategory ? 
+                products.filter(p => p.category === selectedCategory) : 
+                products;
+
+            productsContainer.innerHTML = '';
+            filteredProducts.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product-card';
+                productDiv.innerHTML = `
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p><strong>Categoría:</strong> ${getCategoryName(product.category)}</p>
+                        <p><strong>Precio:</strong> $${product.price.toFixed(2)}</p>
+                        <p><strong>Stock:</strong> ${product.stock}</p>
+                    </div>
+                    <div class="product-actions">
+                        <button onclick="deleteProduct(${product.id})" class="delete-btn">🗑️ Eliminar</button>
+                    </div>
+                `;
+                productsContainer.appendChild(productDiv);
+            });
+        }
+
+        // Función para limpiar filtros
+        function clearAllFilters() {
+            filterCategory.value = '';
+            loadProducts();
+        }
+
+        // Función para eliminar producto
+        function deleteProduct(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                products = products.filter(p => p.id !== id);
+                loadProducts();
+                loadProductSelect();
+            }
+        }
+
+        // Función auxiliar para obtener nombre de categoría
+        function getCategoryName(category) {
+            const categoryNames = {
+                'escolar': 'Material Escolar',
+                'oficina': 'Oficina',
+                'arte': 'Arte y Manualidades',
+                'tecnologia': 'Tecnología',
+                'papeleria': 'Papelería General'
+            };
+            return categoryNames[category] || category;
+        }
+
+        // Cargar productos iniciales
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+            loadProductSelect();
+        });
+    </script>
+</body>
+</html>
